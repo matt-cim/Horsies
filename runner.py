@@ -1,6 +1,7 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import datetime
+import numpy as np
 from numpy.random import choice
 
 # https://en.wikipedia.org/wiki/Linear_congruential_generator
@@ -26,6 +27,23 @@ class HorseRace:
         # self.canvas = tk.Canvas(self.root, width=800, height=400, bg="white")
         self.canvas = tk.Canvas(self.root, width=800, height=900, bg="white")
         self.canvas.pack()
+
+        self.dice = [[0] * 6] * NUM_HORSES # init. to all zeros
+        percentage = self.odds_to_percentage(7, 2)
+        percentage /= 100
+        percentage = round(percentage, 2)
+        for i in range(NUM_HORSES):
+            self.dice[i][0] = percentage
+            remainPerc = round((1 - percentage) / 10, 2)
+            self.dice[i][1] = round(remainPerc * 3, 2) # slight bias compared to following
+            self.dice[i][2] = round(remainPerc * 5, 2) # slight bias compared to following
+            self.dice[i][3] = remainPerc
+            self.dice[i][4] = remainPerc
+            self.dice[i][5] = remainPerc
+
+        print(self.dice)
+
+        self.distances = [10, 8, 6, 4, 2, 1]
         self.horses = []
         self.horse_images = []
 
@@ -39,6 +57,11 @@ class HorseRace:
         self.create_horses()
 
         self.start_race()
+
+    def odds_to_percentage(self, numerator, denominator):
+        # fractional odds so using implied probability where (A/B) -> (B / (A+B)) * 100
+        ret = (denominator / (numerator + denominator)) * 100
+        return round(ret, 1)
 
     def guess_rand_winner(self, seed):
         # outright guess who will win without considering odds (assuming # of total horses works)
@@ -61,12 +84,16 @@ class HorseRace:
     def move_horses(self):
         global MOVE_COUNT
         MOVE_COUNT += 1
+        
         if self.running:
+            i = 0
             for horse in self.horses:
-                # move_distance = random.randint(1, 10)
-                move_distance = 10
-                # https://www.geeksforgeeks.org/how-to-get-weighted-random-choice-in-python/
-                # ^ use numpy version
+                probs = np.array(self.dice[i])
+                probs /= probs.sum()  # normalize bc sum may be decimals over 1 ex: 1.00006
+                randomNumberList = choice(self.distances, 1, p=probs)
+                print(randomNumberList)
+                move_distance = randomNumberList[0]
+                i += 1
 
                 self.canvas.move(horse, move_distance, 0)
                 horse_coords = self.canvas.coords(horse)
